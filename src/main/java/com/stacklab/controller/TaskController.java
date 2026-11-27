@@ -1,0 +1,10 @@
+package com.stacklab.controller;
+import com.stacklab.dto.ApiDtos.*;import com.stacklab.entity.*;import com.stacklab.repository.*;import com.stacklab.service.TaskService;import io.swagger.v3.oas.annotations.security.SecurityRequirement;import jakarta.validation.Valid;import org.springdoc.core.annotations.ParameterObject;import org.springframework.data.domain.*;import org.springframework.data.web.PageableDefault;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/tasks") @SecurityRequirement(name="bearerAuth") public class TaskController{private final TaskService service;private final ActivityRepository activity;public TaskController(TaskService s,ActivityRepository a){service=s;activity=a;}
+ @PostMapping @PreAuthorize("hasAnyRole('ADMIN','MANAGER')") public org.springframework.http.ResponseEntity<TaskView> create(@Valid @RequestBody TaskCreate r){return org.springframework.http.ResponseEntity.status(201).body(service.create(r));}
+ @GetMapping public Page<TaskView> list(@RequestParam(required=false)TaskStatus status,@RequestParam(required=false)Priority priority,@RequestParam(required=false)Long assigneeId,@RequestParam(required=false)Long projectId,@RequestParam(required=false)Boolean overdue,@RequestParam(required=false)String q,@ParameterObject @PageableDefault(size=20,sort="createdAt",direction=Sort.Direction.DESC)Pageable page){return service.list(status,priority,assigneeId,projectId,overdue,q,page);}
+ @GetMapping("/{id}") public TaskView get(@PathVariable Long id){return service.get(id);}
+ @PutMapping("/{id}") public TaskView update(@PathVariable Long id,@Valid @RequestBody TaskInput r){return service.update(id,r);}
+ @DeleteMapping("/{id}") @PreAuthorize("hasAnyRole('ADMIN','MANAGER')") public void delete(@PathVariable Long id){service.delete(id);}
+ @GetMapping("/{id}/activity") public java.util.List<ActivityView> history(@PathVariable Long id){service.get(id);return activity.findByTaskIdOrderByOccurredAtDesc(id).stream().map(ActivityView::of).toList();}
+}

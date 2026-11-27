@@ -1,0 +1,3 @@
+package com.stacklab.service;
+import com.stacklab.entity.AppUser; import com.stacklab.repository.UserRepository; import org.springframework.security.core.context.SecurityContextHolder; import org.springframework.stereotype.Service;
+@Service public class CurrentUserService {private final UserRepository users; public CurrentUserService(UserRepository users){this.users=users;} public AppUser get(){String email=SecurityContextHolder.getContext().getAuthentication().getName();return users.findByEmailIgnoreCase(email).filter(AppUser::isActive).orElseThrow(()->new IllegalStateException("Active user not found"));}}

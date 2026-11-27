@@ -1,0 +1,7 @@
+package com.stacklab.service;
+import com.stacklab.dto.ApiDtos.*; import com.stacklab.entity.*; import com.stacklab.exception.ConflictException; import com.stacklab.repository.UserRepository; import com.stacklab.security.JwtService; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
+@Service public class AuthService {private final UserRepository users;private final PasswordEncoder encoder;private final JwtService jwt;public AuthService(UserRepository users,PasswordEncoder encoder,JwtService jwt){this.users=users;this.encoder=encoder;this.jwt=jwt;}
+ @Transactional public AuthResponse register(RegisterRequest r){if(users.existsByEmailIgnoreCase(r.email()))throw new ConflictException("Email is already registered");AppUser u=users.save(new AppUser(r.name(),r.email(),encoder.encode(r.password()),Role.EMPLOYEE));return response(u);}
+ public AuthResponse login(LoginRequest r){AppUser u=users.findByEmailIgnoreCase(r.email()).filter(AppUser::isActive).orElseThrow(()->new org.springframework.security.authentication.BadCredentialsException("Invalid email or password"));if(!encoder.matches(r.password(),u.getPasswordHash()))throw new org.springframework.security.authentication.BadCredentialsException("Invalid email or password");return response(u);}
+ private AuthResponse response(AppUser u){return new AuthResponse(jwt.generate(u),"Bearer",jwt.getExpiration(),UserView.of(u));}
+}

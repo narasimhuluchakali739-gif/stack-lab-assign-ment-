@@ -1,0 +1,12 @@
+package com.stacklab.exception;
+import com.stacklab.dto.ApiDtos.ErrorView;import jakarta.servlet.http.HttpServletRequest;import org.springframework.dao.OptimisticLockingFailureException;import org.springframework.http.*;import org.springframework.security.authentication.BadCredentialsException;import org.springframework.web.bind.MethodArgumentNotValidException;import org.springframework.web.bind.annotation.*;import java.time.Instant;
+@RestControllerAdvice public class GlobalExceptionHandler{
+ private ResponseEntity<ErrorView> response(HttpStatus s,String m,HttpServletRequest r){return ResponseEntity.status(s).body(new ErrorView(Instant.now(),s.value(),s.getReasonPhrase(),m,r.getRequestURI()));}
+ @ExceptionHandler(NotFoundException.class) ResponseEntity<ErrorView> notFound(NotFoundException e,HttpServletRequest r){return response(HttpStatus.NOT_FOUND,e.getMessage(),r);}
+ @ExceptionHandler({ConflictException.class,OptimisticLockingFailureException.class}) ResponseEntity<ErrorView> conflict(RuntimeException e,HttpServletRequest r){return response(HttpStatus.CONFLICT,e instanceof ConflictException?e.getMessage():"This task was changed by another request. Reload it and retry with the latest version.",r);}
+ @ExceptionHandler({IllegalArgumentException.class,MethodArgumentNotValidException.class}) ResponseEntity<ErrorView> bad(Exception e,HttpServletRequest r){String m=e instanceof MethodArgumentNotValidException v?v.getBindingResult().getFieldErrors().stream().map(x->x.getField()+" "+x.getDefaultMessage()).findFirst().orElse("Invalid request"):e.getMessage();return response(HttpStatus.BAD_REQUEST,m,r);}
+ @ExceptionHandler(BadCredentialsException.class) ResponseEntity<ErrorView> auth(BadCredentialsException e,HttpServletRequest r){return response(HttpStatus.UNAUTHORIZED,e.getMessage(),r);}
+ @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class) ResponseEntity<ErrorView> forbidden(org.springframework.security.access.AccessDeniedException e,HttpServletRequest r){return response(HttpStatus.FORBIDDEN,e.getMessage(),r);}
+ @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class) ResponseEntity<ErrorView> unreadable(Exception e,HttpServletRequest r){return response(HttpStatus.BAD_REQUEST,"Malformed request body or invalid enum value",r);}
+ @ExceptionHandler(Exception.class) ResponseEntity<ErrorView> other(Exception e,HttpServletRequest r){return response(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred",r);}
+}
