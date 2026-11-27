@@ -2,6 +2,8 @@
 
 Spring Boot 3.3 / Java 21 REST API for users, projects, tasks, notifications, audit history, and operational analytics. PostgreSQL is the production database; the default `dev` profile uses in-memory H2 in PostgreSQL compatibility mode and needs no Docker.
 
+Repository: https://github.com/narasimhuluchakali739-gif/stack-lab-assign-ment-
+
 ## Prerequisites and run
 
 - Java 21 JDK. If Temurin is installed in its default folder, set it for the current PowerShell session with the commands below; in a new terminal, repeat the setup unless `JAVA_HOME` is configured in Windows Environment Variables.
@@ -21,12 +23,20 @@ $env:DEMO_SEED_PASSWORD='set-a-unique-password-at-least-12-chars'
 .\mvnw.cmd spring-boot:run
 ```
 
-The optional demo seed is idempotent and creates `admin@stacklab.local`, `maya@stacklab.local`, `eli@stacklab.local`, and `sam@stacklab.local` using the `DEMO_SEED_PASSWORD` value. It only seeds an empty user database. It is intended for local/demo profiles; never reuse that password in production. Without that variable, no sample accounts are created. PostgreSQL production configuration reads `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_POOL_SIZE`, and `DB_POOL_MIN_IDLE`; activate `prod` with `SPRING_PROFILES_ACTIVE=prod`. Flyway applies versioned schema and indexes automatically at startup.
+The optional demo seed is idempotent and creates `admin@stacklab.local`, `maya@stacklab.local`, `eli@stacklab.local`, and `sam@stacklab.local` using the `DEMO_SEED_PASSWORD` value. It only seeds an empty user database. It is intended for local/demo profiles; never reuse that password in production. Without that variable, no sample accounts are created.
+
+## Database setup, migrations, and demo data
+
+- **Local/dev:** no database installation is needed. The `dev` profile starts H2 in PostgreSQL compatibility mode. Flyway runs `V1__init_schema.sql` and `V2__indexes.sql` automatically on application startup. The H2 database is in memory, so stopping the app clears the data and the next startup reruns migrations and the optional seed.
+- **Demo seed:** set `DEMO_SEED_PASSWORD` before starting the app. On an empty H2 database the seeder creates an Admin, Manager, two Employees, a Demo Platform project, tasks covering overdue/in-progress/review/completed/to-do states, an assignment notification, and activity history. The same password is assigned to the four demo accounts. Seed data is skipped when `admin@stacklab.local` already exists.
+- **PostgreSQL:** create an empty PostgreSQL database and a database user with schema/table creation rights. Set `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and optionally `DB_POOL_SIZE` / `DB_POOL_MIN_IDLE`, then run the app. Flyway applies pending migrations during startup; inspect the `flyway_schema_history` table and startup logs to confirm the schema version. The demo seeder is disabled in `prod`.
+
+Flyway configuration and migration files live in `src/main/resources/db/migration`. Migrations are intentionally applied by the application at startup; this project does not configure a separate Maven Flyway plugin.
 
 ## API docs and tests
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI document: live JSON at `http://localhost:8080/v3/api-docs`; complete YAML and JSON snapshots are in `docs/openapi.yaml` and `docs/openapi.json`.
+- OpenAPI document: live JSON at `http://localhost:8080/v3/api-docs`; complete generated YAML and JSON snapshots are in `docs/openapi.yaml` and `docs/openapi.json`.
 - Postman collection: import `postman/stacklab_collection.json`, set `baseUrl` and `demoPassword` to the `DEMO_SEED_PASSWORD` value, then run the Auth requests before the manager/admin workflows. The collection includes user/project/task lifecycle, activity, notifications, analytics, RBAC, and a stale-version 409 flow.
 - Run tests: `.\mvnw.cmd test` (Windows) or `./mvnw test` (Linux/macOS). Tests use the `dev` H2 database and do not require Docker.
 
@@ -54,6 +64,8 @@ Run stateless API replicas behind a load balancer and size HikariCP from measure
 
 ## Demo walkthrough checklist
 
+Use this sequence as a short submission recording walkthrough. Start with the seeded `dev` database and use `DEMO_SEED_PASSWORD` for the demo accounts.
+
 1. Start the `dev` profile with a demo seed password; sign in as admin, manager, and employee.
 2. Register a new account and verify public self-registration grants only EMPLOYEE; show login and token-authenticated access.
 3. As admin, create/update/deactivate a user. Verify a deactivated account cannot log in and its existing token no longer authenticates.
@@ -65,4 +77,4 @@ Run stateless API replicas behind a load balancer and size HikariCP from measure
 
 ## Assumptions and current scope
 
-Task versions are mandatory for updates, while other task fields may be omitted to preserve their current values. Registration is self-service employee-only; admins create elevated accounts. Manager operations are role-based (any MANAGER may manage projects/tasks). Task activity endpoints are authenticated; employee task ownership is enforced on task detail/update operations. The API provides bearer JWT auth and a demo-only seed password; production secret rotation, refresh tokens, mail delivery, per-manager project scoping, and distributed scheduler locking are operational extensions and are not implemented here. The OpenAPI file is a compact importable snapshot; the live generated API docs are authoritative.
+Task versions are mandatory for updates, while other task fields may be omitted to preserve their current values. Registration is self-service employee-only; admins create elevated accounts. Manager operations are role-based (any MANAGER may manage projects/tasks). Task activity endpoints are authenticated; employee task ownership is enforced on task detail/update operations. The API provides bearer JWT auth and a demo-only seed password; production secret rotation, refresh tokens, mail delivery, per-manager project scoping, and distributed scheduler locking are operational extensions and are not implemented here. The checked-in OpenAPI files are generated snapshots; the live generated API docs are authoritative.
